@@ -5,7 +5,8 @@ using System.Text;
 
 namespace Parse
 {
-    public class Class1
+    public class ParseObjectList
     {
+        public Dictionary<String,String>[] results { get; set; }
     }
 }
