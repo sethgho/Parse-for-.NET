@@ -25,9 +25,58 @@ using System.Text;
 
 namespace Parse
 {
-    public class ParseObject
+    public class ParseObject : Dictionary<String,Object>
     {
-        public String createdAt { get; set; }
-        public String objectId { get; set; }
+        public readonly String createdAt 
+        {
+            get
+            {
+                return base["createdAt"].ToString();
+            }
+        }
+
+        public readonly String objectId
+        {
+            get
+            {
+                return base["objectId"].ToString();
+            }
+        }
+
+        public readonly String Class
+        {
+            get
+            {
+                return base["Class"].ToString();
+            }
+            set
+            {
+                base["Class"] = Class;
+            }
+        }
+
+        public ParseObject(String ClassName)
+        {
+            Class = ClassName;
+        }
+
+        public void Save()
+        {
+            throw new NotImplementedException();
+        }
+
+        public DateTime GetDateFromKey(String KeyName)
+        {
+            return DateTime.ParseExact(this[KeyName].ToString(), "yyyy-MM-ddTHH:mm:ss.fffZ", null);
+        }
+
+        public override void Add(String key, Object value)
+        {
+            if (value.GetType() == typeof(DateTime))
+            {
+                base.Add(key, new SerialisedDate((DateTime)value));
+            }
+            else base.Add(key, value);
+        }
     }
 }

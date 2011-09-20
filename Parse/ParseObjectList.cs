@@ -28,6 +28,6 @@ namespace Parse
 {
     public class ParseObjectList
     {
-        public Dictionary<String,String>[] results { get; set; }
+        public ParseObject[] results { get; set; }
     }
 }

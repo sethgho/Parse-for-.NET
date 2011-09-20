@@ -58,20 +58,32 @@ namespace Parse
         /// <param name="ClassName">The name of the ParseObject's class</param>
         /// <param name="PostObject">The object to be created on the server</param>
         /// <returns>A ParseObject with the ObjectId and date of creation</returns>
-        public ParseObject CreateObject(String ClassName, Object PostObject)
+        public ParseObject CreateObject(ParseObject PostObject)
         {
-            return JsonConvert.DeserializeObject<ParseObject>(PostDataToParse(ClassName, PostObject));
+            if (PostObject == null)
+            {
+                throw new ArgumentNullException();
+            }
+
+            Dictionary<String,Object> returnObject = JsonConvert.DeserializeObject<Dictionary<String, Object>>(PostDataToParse(PostObject.Class, PostObject));
+
+            PostObject["objectId"] = returnObject["objectId"];
+            PostObject["createdAt"] = returnObject["createdAt"];
+
+            return PostObject;
         }
 
         /// <summary>
         /// Updates a pre-existing ParseObject
         /// </summary>
-        /// <param name="ClassName">The name of the object's class</param>
-        /// <param name="PostObject">The updated values of the object</param>
-        /// <param name="ObjectId">The ObjectId of the object</param>
-        public void UpdateObject(String ClassName, Object PostObject, String ObjectId)
+        /// <param name="PostObject">The object being updated</param>
+        public void UpdateObject(ParseObject PostObject)
         {
-            PostDataToParse(ClassName, PostObject, ObjectId);
+            if (PostObject == null)
+            {
+                throw new ArgumentNullException();
+            }
+            PostDataToParse(PostObject.Class, PostObject, PostObject.objectId);
         }
 
         /// <summary>
@@ -80,7 +92,7 @@ namespace Parse
         /// <param name="ClassName">The name of the object's class</param>
         /// <param name="ObjectId">The ObjectId of the object</param>
         /// <returns>A dictionary with the object's attributes</returns>
-        public Dictionary<String, String> GetObject(String ClassName, String ObjectId)
+        public ParseObject GetObject(String ClassName, String ObjectId)
         {
             if (String.IsNullOrEmpty(ClassName) || String.IsNullOrEmpty(ObjectId))
             {
@@ -88,7 +100,7 @@ namespace Parse
             }
 
             String resultJSON = GetFromParse(Endpoint + "/" + ClassName + "/" + ObjectId);
-            return JsonConvert.DeserializeObject<Dictionary<String, String>>(resultJSON);
+            return JsonConvert.DeserializeObject<ParseObject>(resultJSON);
         }
 
         /// <summary>
@@ -112,17 +124,16 @@ namespace Parse
         /// <summary>
         /// Deletes an object from Parse
         /// </summary>
-        /// <param name="ClassName">The name of the class of the object to be deleted</param>
-        /// <param name="ObjectId">The objectId of the object to be deleted</param>
-        public void DeleteObject(String ClassName, String ObjectId)
+        /// <param name="DestinationObject">The object to be deleted</param>
+        public void DeleteObject(ParseObject DestinationObject)
         {
-            if (String.IsNullOrEmpty(ClassName) || String.IsNullOrEmpty(ObjectId))
+            if (DestinationObject == null)
             {
                 throw new ArgumentNullException();
             }
 
             WebClient webClient = new WebClient();
-            WebRequest webRequest = WebRequest.Create(Endpoint + "/" + ClassName + "/" + ObjectId);
+            WebRequest webRequest = WebRequest.Create(Endpoint + "/" + DestinationObject.Class + "/" + DestinationObject.objectId);
             webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
             webRequest.Method = "DELETE";
 

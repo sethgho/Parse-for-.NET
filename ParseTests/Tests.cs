@@ -84,10 +84,13 @@ namespace ParseTests
         public void TestMethod1()
         {
             Parse.ParseObject retObject = localClient.CreateObject("ClassOne", new { foo = "bar" });
+            Parse.ParseObject test = new Parse.ParseObject("ClassOne");
+
+
             Assert.IsNotNull(retObject);
             Assert.IsNotNull(retObject.objectId);
 
-            Dictionary<String, String> searchObject = localClient.GetObject("ClassOne", retObject.objectId);
+            Parse.ParseObject searchObject = localClient.GetObject("ClassOne", retObject.objectId);
             Assert.AreEqual(retObject.objectId, searchObject["objectId"]);
 
             localClient.UpdateObject("ClassOne", new { foo = "notbar" }, retObject.objectId);

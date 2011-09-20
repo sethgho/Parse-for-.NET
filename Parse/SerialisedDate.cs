@@ -31,9 +31,16 @@ namespace Parse
         public SerialisedDate(DateTime theDate)
         {
             iso = theDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            date = theDate;
         }
 
-        public string __type = "Date";
-        public string iso;
+        public DateTime GetDateTimeObject()
+        {
+            return date;
+        }
+
+        private DateTime date;
+        public String __type = "Date";
+        public String iso;
     }
 }
