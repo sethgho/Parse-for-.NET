@@ -26,6 +26,12 @@ using System.Text;
 
 namespace Parse
 {
+    /// <summary>
+    /// Provides an object to represent how Parse accepts DateTime objects on the server
+    /// </summary>
+    /// <remarks>
+    /// ParseObject has been subclassed to automatically transform a DateTime object into a SerialisedDate, however this conversion is one-way.
+    /// </remarks>
     public class SerialisedDate
     {
         public SerialisedDate(DateTime theDate)
@@ -40,7 +46,7 @@ namespace Parse
         }
 
         private DateTime date;
-        public String __type = "Date";
+        public readonly String __type = "Date";
         public String iso;
     }
 }

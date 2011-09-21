@@ -27,31 +27,39 @@ namespace Parse
 {
     public class ParseObject : Dictionary<String,Object>
     {
-        public readonly String createdAt 
+        public String createdAt 
         {
             get
             {
                 return base["createdAt"].ToString();
             }
-        }
-
-        public readonly String objectId
-        {
-            get
+            set
             {
-                return base["objectId"].ToString();
+                base["createdAt"] = value;
             }
         }
 
-        public readonly String Class
+        public String objectId
         {
             get
             {
-                return base["Class"].ToString();
+                return (String)base["objectId"];
             }
             set
             {
-                base["Class"] = Class;
+                base["objectId"] = value;
+            }
+        }
+
+        public String Class
+        {
+            get
+            {
+                return (String)base["Class"];
+            }
+            set
+            {
+                base["Class"] = value;
             }
         }
 
@@ -70,12 +78,13 @@ namespace Parse
             return DateTime.ParseExact(this[KeyName].ToString(), "yyyy-MM-ddTHH:mm:ss.fffZ", null);
         }
 
-        public override void Add(String key, Object value)
+        public virtual new void Add(String key, Object value)
         {
             if (value.GetType() == typeof(DateTime))
             {
                 base.Add(key, new SerialisedDate((DateTime)value));
             }
+
             else base.Add(key, value);
         }
     }

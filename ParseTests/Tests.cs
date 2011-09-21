@@ -83,26 +83,38 @@ namespace ParseTests
         [TestMethod]
         public void TestMethod1()
         {
-            Parse.ParseObject retObject = localClient.CreateObject("ClassOne", new { foo = "bar" });
-            Parse.ParseObject test = new Parse.ParseObject("ClassOne");
+            Parse.ParseObject testObject = new Parse.ParseObject("ClassOne");
+            testObject["foo"] = "bar";
+            //Create a new object
+            testObject = localClient.CreateObject(testObject);
 
+            //Test to make sure we returned a ParseObject
+            Assert.IsNotNull(testObject);
+            //Test to make sure we were assigned an object id and the object was actually remotely created
+            Assert.IsNotNull(testObject.objectId);
 
-            Assert.IsNotNull(retObject);
-            Assert.IsNotNull(retObject.objectId);
+            //Search for the newly-created object on the server
+            Parse.ParseObject searchObject = localClient.GetObject("ClassOne", testObject.objectId);
+            //Test to make sure the same object was returned
+            Assert.AreEqual(testObject.objectId, searchObject.objectId);
 
-            Parse.ParseObject searchObject = localClient.GetObject("ClassOne", retObject.objectId);
-            Assert.AreEqual(retObject.objectId, searchObject["objectId"]);
+            testObject["foo"] = "notbar";
+            //Change a value on the server
+            localClient.UpdateObject(testObject);
 
-            localClient.UpdateObject("ClassOne", new { foo = "notbar" }, retObject.objectId);
-            searchObject = localClient.GetObject("ClassOne", retObject.objectId);
+            searchObject = localClient.GetObject("ClassOne", testObject.objectId);
+            //Test to make sure the object was updated on the server
             Assert.AreEqual("notbar", searchObject["foo"]);
 
-            Parse.ParseObjectList objList = localClient.GetObjectsWithQuery("ClassOne", new { foo = "notbar" });
+            //Test to make sure we can retrieve objects from Parse
+            Parse.ParseObject[]objList = localClient.GetObjectsWithQuery("ClassOne", new { foo = "notbar" });
             Assert.IsNotNull(objList);
 
-            Assert.AreEqual(objList.results.First()["objectId"], retObject.objectId);
+            //Test to make sure the same object was returned
+            Assert.AreEqual(objList.First()["objectId"], testObject.objectId);
 
-            localClient.DeleteObject("ClassOne", retObject.objectId);
+            //Cleanup
+            localClient.DeleteObject(testObject);
         }
     }
 }

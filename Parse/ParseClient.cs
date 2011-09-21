@@ -83,7 +83,10 @@ namespace Parse
             {
                 throw new ArgumentNullException();
             }
-            PostDataToParse(PostObject.Class, PostObject, PostObject.objectId);
+            String postObjectClass = PostObject.Class;
+            PostObject.Remove("Class");
+            PostObject.Remove("createdAt");
+            PostDataToParse(postObjectClass, PostObject, PostObject.objectId);
         }
 
         /// <summary>
@@ -99,8 +102,16 @@ namespace Parse
                 throw new ArgumentNullException();
             }
 
-            String resultJSON = GetFromParse(Endpoint + "/" + ClassName + "/" + ObjectId);
-            return JsonConvert.DeserializeObject<ParseObject>(resultJSON);
+            ParseObject resultObject = new ParseObject(ClassName);
+            
+            Dictionary<String,Object> retDict = JsonConvert.DeserializeObject<Dictionary<String, Object>>(GetFromParse(Endpoint + "/" + ClassName + "/" + ObjectId));
+
+            foreach (var localObject in retDict)
+            {
+                resultObject[localObject.Key] = localObject.Value;
+            }
+
+            return resultObject;
         }
 
         /// <summary>
@@ -112,13 +123,29 @@ namespace Parse
         /// <param name="Limit">The maximum number of results to be returned (Default unlimited)</param>
         /// <param name="Skip">The number of results to skip at the start (Default 0)</param>
         /// <returns>An array of Dictionaries containing the objects</returns>
-        public ParseObjectList GetObjectsWithQuery(String ClassName, Object Query, String Order = null, String Limit = null, String Skip = null)
+        public ParseObject[] GetObjectsWithQuery(String ClassName, Object Query, String Order = null, Int32 Limit = 0, Int32 Skip = 0)
         {
             if (String.IsNullOrEmpty(ClassName) || Query == null)
             {
                 throw new ArgumentNullException();
             }
-            return JsonConvert.DeserializeObject<ParseObjectList>(this.GetFromParse(Endpoint + "/" + ClassName, Query));
+
+            InternalDictionaryList dictList = JsonConvert.DeserializeObject<InternalDictionaryList>(this.GetFromParse(Endpoint + "/" + ClassName, Query, Order, Limit, Skip));
+
+            ParseObject[] poList = new ParseObject[dictList.results.Count()];
+
+            int i = 0;
+            foreach (Dictionary<String, Object> locDict in dictList.results)
+            {
+                poList[i] = new ParseObject(ClassName);
+                foreach (KeyValuePair<String,Object> innerDictionary in locDict)
+                {
+                    poList[i][innerDictionary.Key] = innerDictionary.Value;
+                }
+                i++;
+            }
+
+            return poList;
         }
 
         /// <summary>
@@ -193,8 +220,9 @@ namespace Parse
             return response;
         }
 
-        private String PostDataToParse(String ClassName, Object PostObject, String ObjectId = null)
+        private String PostDataToParse(String ClassName, Dictionary<String,Object> PostObject, String ObjectId = null)
         {
+            String ClassNameCopy = ClassName;
             if (String.IsNullOrEmpty(ClassName) || PostObject == null)
             {
                 throw new ArgumentNullException();
@@ -216,6 +244,8 @@ namespace Parse
             }
 
             String postString = JsonConvert.SerializeObject(PostObject);
+
+            PostObject["Class"] = ClassNameCopy;
 
             byte[] postDataArray = Encoding.UTF8.GetBytes(postString);
 
@@ -241,6 +271,11 @@ namespace Parse
                 responseObject.Close();
                 throw new Exception("New object was not created. Server returned code " + responseObject.StatusCode);
             }
+        }
+
+        private class InternalDictionaryList
+        {
+            public Dictionary<String, Object>[] results { get; set; }
         }
     }
 }

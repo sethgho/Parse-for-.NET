@@ -26,11 +26,25 @@ using System.Text;
 
 namespace Parse
 {
-    class SerialisedObjectReference
+    /// <summary>
+    /// Provides an object to represent a related object on Parse
+    /// </summary>
+    public class SerialisedObjectReference
     {
+        /// <summary>
+        /// The name of the related class
+        /// </summary>
         public String className { get; set; }
+
+        /// <summary>
+        /// The ID of the related object
+        /// </summary>
         public String objectId { get; set; }
-        public String __type = "Pointer";
+
+        /// <summary>
+        /// For serialisation only
+        /// </summary>
+        public readonly String __type = "Pointer";
         public SerialisedObjectReference(String classIdentifier, String objectIdentifier)
         {
             className = classIdentifier;

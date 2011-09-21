@@ -43,7 +43,6 @@
   <ItemGroup>
     <Compile Include="ParseClient.cs" />
     <Compile Include="ParseObject.cs" />
-    <Compile Include="ParseObjectList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerialisedDate.cs" />
     <Compile Include="SerialisedObjectReference.cs" />
