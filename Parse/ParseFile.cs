@@ -10,16 +10,14 @@ namespace Parse
     {
         public string Name { get; set; }
         public string Url { get; set; }
-        public byte[] Data { get; set; }
+        public string FilePath { get; set; }
         public string ContentType { get; set; }
 
-        public static ParseFile GetFromFile(string filePath)
+        public ParseFile(string filePath)
         {
-            ParseFile file = new ParseFile();
-            file.Data = File.ReadAllBytes(filePath);
-            file.ContentType = MIMEAssistant.GetMIMEType(filePath);
-            file.Name = Path.GetFileName(filePath);
-            return file;
+            FilePath = filePath;
+            ContentType = MIMEAssistant.GetMIMEType(filePath);
+            Name = Path.GetFileName(filePath);
         }
 
         private static class MIMEAssistant

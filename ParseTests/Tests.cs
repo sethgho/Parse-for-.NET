@@ -86,7 +86,7 @@ namespace ParseTests
         {
             string fileContents = "This is a test file.";
             File.WriteAllText("testFile.txt", fileContents);
-            Parse.ParseFile parseFile = Parse.ParseFile.GetFromFile("testFile.txt");
+            Parse.ParseFile parseFile = new Parse.ParseFile("testFile.txt");
             Parse.ParseFile testFile = localClient.CreateFile(parseFile);
 
             //Test to make sure test file is returned after creation.

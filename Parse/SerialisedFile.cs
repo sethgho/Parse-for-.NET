@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace Parse
 {
@@ -9,7 +10,7 @@ namespace Parse
     {
         public ParseFileReference(ParseFile parseFile)
         {
-            name = parseFile.Name;
+            name = Path.GetFileName(parseFile.Url);
         }
         
         public readonly String __type = "File";

@@ -24,6 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 using Newtonsoft.Json;
+using System.IO;
 
 namespace Parse
 {
@@ -34,7 +35,7 @@ namespace Parse
         public Int32 ConnectionTimeout { get; set; }
 
         private String classEndpoint = "https://api.parse.com/1/classes";
-        private String fileEndpoint = "https://api.parse.com/1/files";
+        private String fileEndpoint = "http://api.parse.com/1/files";
         
         /// <summary>
         /// Returns a new ParseClient to interact with the Parse REST API
@@ -76,7 +77,7 @@ namespace Parse
 
         public ParseFile CreateFile(ParseFile parseFile)
         {
-            Dictionary<String, String> returnObject = JsonConvert.DeserializeObject<Dictionary<String, String>>(PostFileToParse(parseFile.Name, parseFile.Data, parseFile.ContentType));
+            Dictionary<String, String> returnObject = JsonConvert.DeserializeObject<Dictionary<String, String>>(PostFileToParse(parseFile.FilePath, parseFile.ContentType));
             parseFile.Url = returnObject["url"];
             return parseFile;
         }
@@ -281,33 +282,16 @@ namespace Parse
             }
         }
 
-        private String PostFileToParse(string fileName, byte[] data, string contentType)
+        private String PostFileToParse(string filePath, string contentType)
         {
+            System.Net.ServicePointManager.Expect100Continue = false;
             WebClient webClient = new WebClient();
-            WebRequest webRequest = WebRequest.Create(fileEndpoint + "/" + fileName);
-            webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
-            webRequest.Method = "POST";
+            webClient.Headers.Set("Content-Type", contentType);
+            webClient.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
+            byte[] response = webClient.UploadFile(fileEndpoint + "/" + Path.GetFileName(filePath), filePath);
 
-            webRequest.ContentLength = data.Length;
-            webRequest.Timeout = ConnectionTimeout;
-            webRequest.ContentType = contentType;
-            System.IO.Stream writeStream = webRequest.GetRequestStream();
-            writeStream.Write(data, 0, data.Length);
-            writeStream.Close();
-            HttpWebResponse responseObject = (HttpWebResponse)webRequest.GetResponse();
-            if (responseObject.StatusCode == HttpStatusCode.Created || true)
-            {
-                System.IO.StreamReader responseReader = new System.IO.StreamReader(responseObject.GetResponseStream());
-                String responseString = responseReader.ReadToEnd();
-                responseObject.Close();
+            return System.Text.Encoding.UTF8.GetString(response);  
 
-                return responseString;
-            }
-            else
-            {
-                responseObject.Close();
-                throw new Exception("New file was not created. Server returned code " + responseObject.StatusCode);
-            }
         }
 
         private class InternalDictionaryList
