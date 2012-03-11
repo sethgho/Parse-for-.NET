@@ -84,6 +84,10 @@ namespace Parse
             {
                 base.Add(key, new SerialisedDate((DateTime)value));
             }
+            else if (value.GetType() == typeof(ParseFile))
+            {
+                base.Add(key, new ParseFileReference((ParseFile)value));
+            }
 
             else base.Add(key, value);
         }

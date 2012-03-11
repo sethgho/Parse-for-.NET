@@ -24,6 +24,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace ParseTests
 {
@@ -83,6 +84,14 @@ namespace ParseTests
         [TestMethod]
         public void TestMethod1()
         {
+            string fileContents = "This is a test file.";
+            File.WriteAllText("testFile.txt", fileContents);
+            Parse.ParseFile parseFile = Parse.ParseFile.GetFromFile("testFile.txt");
+            Parse.ParseFile testFile = localClient.CreateFile(parseFile);
+
+            //Test to make sure test file is returned after creation.
+            Assert.IsNotNull(testFile);
+
             Parse.ParseObject testObject = new Parse.ParseObject("ClassOne");
             testObject["foo"] = "bar";
             //Create a new object
@@ -112,6 +121,8 @@ namespace ParseTests
 
             //Test to make sure the same object was returned
             Assert.AreEqual(objList.First()["objectId"], testObject.objectId);
+
+            
 
             //Cleanup
             localClient.DeleteObject(testObject);

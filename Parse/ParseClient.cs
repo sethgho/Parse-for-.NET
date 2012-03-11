@@ -33,7 +33,8 @@ namespace Parse
         public String ApplicationKey { get; set; }
         public Int32 ConnectionTimeout { get; set; }
 
-        private String Endpoint = "https://api.parse.com/1/classes";
+        private String classEndpoint = "https://api.parse.com/1/classes";
+        private String fileEndpoint = "https://api.parse.com/1/files";
         
         /// <summary>
         /// Returns a new ParseClient to interact with the Parse REST API
@@ -73,6 +74,13 @@ namespace Parse
             return PostObject;
         }
 
+        public ParseFile CreateFile(ParseFile parseFile)
+        {
+            Dictionary<String, String> returnObject = JsonConvert.DeserializeObject<Dictionary<String, String>>(PostFileToParse(parseFile.Name, parseFile.Data, parseFile.ContentType));
+            parseFile.Url = returnObject["url"];
+            return parseFile;
+        }
+
         /// <summary>
         /// Updates a pre-existing ParseObject
         /// </summary>
@@ -104,7 +112,7 @@ namespace Parse
 
             ParseObject resultObject = new ParseObject(ClassName);
             
-            Dictionary<String,Object> retDict = JsonConvert.DeserializeObject<Dictionary<String, Object>>(GetFromParse(Endpoint + "/" + ClassName + "/" + ObjectId));
+            Dictionary<String,Object> retDict = JsonConvert.DeserializeObject<Dictionary<String, Object>>(GetFromParse(classEndpoint + "/" + ClassName + "/" + ObjectId));
 
             foreach (var localObject in retDict)
             {
@@ -130,7 +138,7 @@ namespace Parse
                 throw new ArgumentNullException();
             }
 
-            InternalDictionaryList dictList = JsonConvert.DeserializeObject<InternalDictionaryList>(this.GetFromParse(Endpoint + "/" + ClassName, Query, Order, Limit, Skip));
+            InternalDictionaryList dictList = JsonConvert.DeserializeObject<InternalDictionaryList>(this.GetFromParse(classEndpoint + "/" + ClassName, Query, Order, Limit, Skip));
 
             ParseObject[] poList = new ParseObject[dictList.results.Count()];
 
@@ -160,7 +168,7 @@ namespace Parse
             }
 
             WebClient webClient = new WebClient();
-            WebRequest webRequest = WebRequest.Create(Endpoint + "/" + DestinationObject.Class + "/" + DestinationObject.objectId);
+            WebRequest webRequest = WebRequest.Create(classEndpoint + "/" + DestinationObject.Class + "/" + DestinationObject.objectId);
             webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
             webRequest.Method = "DELETE";
 
@@ -234,7 +242,7 @@ namespace Parse
             }
 
             WebClient webClient = new WebClient();
-            WebRequest webRequest = WebRequest.Create(Endpoint + "/" + ClassName);
+            WebRequest webRequest = WebRequest.Create(classEndpoint + "/" + ClassName);
             webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
             webRequest.Method = "POST";
 
@@ -270,6 +278,35 @@ namespace Parse
             {
                 responseObject.Close();
                 throw new Exception("New object was not created. Server returned code " + responseObject.StatusCode);
+            }
+        }
+
+        private String PostFileToParse(string fileName, byte[] data, string contentType)
+        {
+            WebClient webClient = new WebClient();
+            WebRequest webRequest = WebRequest.Create(fileEndpoint + "/" + fileName);
+            webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
+            webRequest.Method = "POST";
+
+            webRequest.ContentLength = data.Length;
+            webRequest.Timeout = ConnectionTimeout;
+            webRequest.ContentType = contentType;
+            System.IO.Stream writeStream = webRequest.GetRequestStream();
+            writeStream.Write(data, 0, data.Length);
+            writeStream.Close();
+            HttpWebResponse responseObject = (HttpWebResponse)webRequest.GetResponse();
+            if (responseObject.StatusCode == HttpStatusCode.Created || true)
+            {
+                System.IO.StreamReader responseReader = new System.IO.StreamReader(responseObject.GetResponseStream());
+                String responseString = responseReader.ReadToEnd();
+                responseObject.Close();
+
+                return responseString;
+            }
+            else
+            {
+                responseObject.Close();
+                throw new Exception("New file was not created. Server returned code " + responseObject.StatusCode);
             }
         }
 
