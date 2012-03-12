@@ -36,7 +36,7 @@ namespace Parse
 
         private String classEndpoint = "https://api.parse.com/1/classes";
         private String fileEndpoint = "http://api.parse.com/1/files";
-        
+
         /// <summary>
         /// Returns a new ParseClient to interact with the Parse REST API
         /// </summary>
@@ -67,7 +67,7 @@ namespace Parse
                 throw new ArgumentNullException();
             }
 
-            Dictionary<String,Object> returnObject = JsonConvert.DeserializeObject<Dictionary<String, Object>>(PostDataToParse(PostObject.Class, PostObject));
+            Dictionary<String, Object> returnObject = JsonConvert.DeserializeObject<Dictionary<String, Object>>(PostDataToParse(PostObject.Class, PostObject));
 
             PostObject["objectId"] = returnObject["objectId"];
             PostObject["createdAt"] = returnObject["createdAt"];
@@ -112,8 +112,8 @@ namespace Parse
             }
 
             ParseObject resultObject = new ParseObject(ClassName);
-            
-            Dictionary<String,Object> retDict = JsonConvert.DeserializeObject<Dictionary<String, Object>>(GetFromParse(classEndpoint + "/" + ClassName + "/" + ObjectId));
+
+            Dictionary<String, Object> retDict = JsonConvert.DeserializeObject<Dictionary<String, Object>>(GetFromParse(classEndpoint + "/" + ClassName + "/" + ObjectId));
 
             foreach (var localObject in retDict)
             {
@@ -147,7 +147,7 @@ namespace Parse
             foreach (Dictionary<String, Object> locDict in dictList.results)
             {
                 poList[i] = new ParseObject(ClassName);
-                foreach (KeyValuePair<String,Object> innerDictionary in locDict)
+                foreach (KeyValuePair<String, Object> innerDictionary in locDict)
                 {
                     poList[i][innerDictionary.Key] = innerDictionary.Value;
                 }
@@ -216,11 +216,11 @@ namespace Parse
             webRequest.Timeout = ConnectionTimeout;
 
             HttpWebResponse b = (HttpWebResponse)webRequest.GetResponse();
-           
+
             //TODO: error handling
 
-            System.IO.Stream readerStream = b.GetResponseStream();
-            System.IO.StreamReader uberReader = new System.IO.StreamReader(readerStream);
+            Stream readerStream = b.GetResponseStream();
+            StreamReader uberReader = new StreamReader(readerStream);
 
             String response = uberReader.ReadToEnd();
 
@@ -229,14 +229,14 @@ namespace Parse
             return response;
         }
 
-        private String PostDataToParse(String ClassName, Dictionary<String,Object> PostObject, String ObjectId = null)
+        private String PostDataToParse(String ClassName, Dictionary<String, Object> PostObject, String ObjectId = null)
         {
             String ClassNameCopy = ClassName;
             if (String.IsNullOrEmpty(ClassName) || PostObject == null)
             {
                 throw new ArgumentNullException();
             }
-            
+
             if (String.IsNullOrEmpty(ObjectId) == false)
             {
                 ClassName += "/" + ObjectId;
@@ -247,7 +247,7 @@ namespace Parse
             webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
             webRequest.Method = "POST";
 
-            if(String.IsNullOrEmpty(ObjectId) == false)
+            if (String.IsNullOrEmpty(ObjectId) == false)
             {
                 webRequest.Method = "PUT";
             }
@@ -262,14 +262,14 @@ namespace Parse
             webRequest.Timeout = ConnectionTimeout;
             webRequest.ContentType = "application/json";
 
-            System.IO.Stream writeStream = webRequest.GetRequestStream();
+            Stream writeStream = webRequest.GetRequestStream();
             writeStream.Write(postDataArray, 0, postDataArray.Length);
             writeStream.Close();
 
             HttpWebResponse responseObject = (HttpWebResponse)webRequest.GetResponse();
             if (responseObject.StatusCode == HttpStatusCode.Created || true)
             {
-                System.IO.StreamReader responseReader = new System.IO.StreamReader(responseObject.GetResponseStream());
+                StreamReader responseReader = new StreamReader(responseObject.GetResponseStream());
                 String responseString = responseReader.ReadToEnd();
                 responseObject.Close();
 
@@ -296,36 +296,82 @@ namespace Parse
 
 
             /* This generates a 502 Bad Gateway. WTF? */
-            WebClient webClient = new WebClient();
-            WebRequest webRequest = WebRequest.Create(fileEndpoint + "/" + Path.GetFileName(filePath));
+            // Not used
+            // WebClient webClient = new WebClient();
+            string fileName = Path.GetFileName(filePath);
+            WebRequest webRequest = WebRequest.Create(Path.Combine(fileEndpoint, fileName));
             webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
             webRequest.Method = "POST";
             System.Net.ServicePointManager.Expect100Continue = false;
-            webRequest.ContentType = contentType;
+            string boundary = Guid.NewGuid().ToString();
+            webRequest.ContentType = "multipart/form-data; boundary=" + boundary;
             webRequest.Timeout = ConnectionTimeout;
-            
 
-            byte[] data = File.ReadAllBytes(filePath);
-            webRequest.ContentLength = data.Length;
+            byte[] mimeHeaderBytesToWrite = GetMimeHeaderBytesToWrite(contentType, fileName, boundary);
+            byte[] mimeTrailerBytesToWrite = GetMimeTrailerBytesToWrite(boundary);
 
-            using (System.IO.Stream writeStream = webRequest.GetRequestStream())
+            var fileInfo = new FileInfo(filePath);
+            webRequest.ContentLength = fileInfo.Length + mimeHeaderBytesToWrite.Length + mimeTrailerBytesToWrite.Length;
+
+            using (Stream writeStream = webRequest.GetRequestStream())
             {
-                writeStream.Write(data, 0, data.Length);
+                writeStream.Write(mimeHeaderBytesToWrite, 0, mimeHeaderBytesToWrite.Length);
+
+                using (Stream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    int readBytes;
+                    int bufferSize = 4096; // bytes
+                    byte[] buffer = new byte[bufferSize];
+
+                    while ((readBytes = fileStream.Read(buffer, 0, bufferSize)) > 0)
+                    {
+                        writeStream.Write(buffer, 0, readBytes);
+                    }
+                }
+
+                writeStream.Write(mimeTrailerBytesToWrite, 0, mimeTrailerBytesToWrite.Length);
+                writeStream.Flush();
             }
+
             HttpWebResponse responseObject = (HttpWebResponse)webRequest.GetResponse();
-            if (responseObject.StatusCode == HttpStatusCode.Created || true)
+            try
             {
-                System.IO.StreamReader responseReader = new System.IO.StreamReader(responseObject.GetResponseStream());
-                String responseString = responseReader.ReadToEnd();
+                if (responseObject.StatusCode == HttpStatusCode.Created || true)
+                {
+                    using (StreamReader responseReader = new StreamReader(responseObject.GetResponseStream()))
+                    {
+                        string responseString = responseReader.ReadToEnd();
+                        return responseString;
+                    }
+                }
+                else
+                {
+                    throw new Exception("New object was not created. Server returned code " + responseObject.StatusCode);
+                }
+            }
+            finally
+            {
                 responseObject.Close();
+            }
+        }
 
-                return responseString;
-            }
-            else
-            {
-                responseObject.Close();
-                throw new Exception("New object was not created. Server returned code " + responseObject.StatusCode);
-            }
+        private static byte[] GetMimeHeaderBytesToWrite(string contentType, string fileName, string boundary)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("--" + boundary);
+            sb.AppendFormat("Content-Disposition: form-data; name=\"file\"; filename=\"{0}\"", fileName);
+            sb.AppendLine();
+            sb.AppendLine("Content-Type: " + contentType);
+            sb.AppendLine();
+
+            byte[] mimeBytesToWrite = Encoding.UTF8.GetBytes(sb.ToString());
+            return mimeBytesToWrite;
+        }
+
+        private static byte[] GetMimeTrailerBytesToWrite(string boundary)
+        {
+            byte[] mimeBytesToWrite = Encoding.UTF8.GetBytes(String.Concat("\r\n--", boundary, "--\r\n"));
+            return mimeBytesToWrite;
         }
 
         private class InternalDictionaryList
