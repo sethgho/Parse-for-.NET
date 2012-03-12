@@ -282,54 +282,26 @@ namespace Parse
             }
         }
 
-        private String PostFileToParse(string filePath, string contentType, bool enableMime = false)
+        private String PostFileToParse(string filePath, string contentType)
         {
-            /*** This works, but content-type is incorrect. ***/
-            //System.Net.ServicePointManager.Expect100Continue = false;
-            //WebClient webClient = new WebClient();
-            //webClient.Headers.Set("Content-Type", contentType);
-            //webClient.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
-            //byte[] response = webClient.UploadFile(fileEndpoint + "/" + Path.GetFileName(filePath), filePath);
-
-            //string result = System.Text.Encoding.UTF8.GetString(response);
-            //System.Diagnostics.Debug.WriteLine(result);
-
-
-            /* This generates a 502 Bad Gateway. WTF? */
-            // Not used
-            // WebClient webClient = new WebClient();
             string fileName = Path.GetFileName(filePath);
             WebRequest webRequest = WebRequest.Create(Path.Combine(fileEndpoint, fileName));
-            webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
+            // Authentication is broken. Doesn't return 401. Force authorization header on POST rather than Credentials property
+            byte[] authBytes = Encoding.UTF8.GetBytes(String.Format("{0}:{1}", ApplicationId, ApplicationKey).ToCharArray());
+            webRequest.Headers["Authorization"] = "Basic " + Convert.ToBase64String(authBytes);
             webRequest.Method = "POST";
-            System.Net.ServicePointManager.Expect100Continue = false;
-            string boundary = Guid.NewGuid().ToString();
-            webRequest.ContentType = enableMime ? "multipart/form-data; boundary=" + boundary : contentType;
+            ServicePointManager.Expect100Continue = false;
+            webRequest.ContentType = contentType;
             webRequest.Timeout = ConnectionTimeout;
             HttpWebRequest httpWebRequest = webRequest as HttpWebRequest;
             httpWebRequest.ProtocolVersion = HttpVersion.Version11;
             httpWebRequest.UserAgent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)";
 
-            byte[] mimeHeaderBytesToWrite = null;
-            byte[] mimeTrailerBytesToWrite = null;
-
             var fileInfo = new FileInfo(filePath);
             webRequest.ContentLength = fileInfo.Length;
-            if (enableMime)
-            {
-                mimeHeaderBytesToWrite = GetMimeHeaderBytesToWrite(contentType, fileName, boundary);
-                mimeTrailerBytesToWrite = GetMimeTrailerBytesToWrite(boundary);
-
-                webRequest.ContentLength += mimeHeaderBytesToWrite.Length + mimeTrailerBytesToWrite.Length;
-            }
 
             using (Stream writeStream = webRequest.GetRequestStream())
             {
-                if (enableMime)
-                {
-                    writeStream.Write(mimeHeaderBytesToWrite, 0, mimeHeaderBytesToWrite.Length);
-                }
-
                 using (Stream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     int readBytes;
@@ -342,10 +314,6 @@ namespace Parse
                     }
                 }
 
-                if (enableMime)
-                {
-                    writeStream.Write(mimeTrailerBytesToWrite, 0, mimeTrailerBytesToWrite.Length);
-                }
                 writeStream.Flush();
             }
 
@@ -388,25 +356,6 @@ namespace Parse
                     responseObject.Close();
                 }
             }
-        }
-
-        private static byte[] GetMimeHeaderBytesToWrite(string contentType, string fileName, string boundary)
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("--" + boundary);
-            sb.AppendFormat("Content-Disposition: form-data; name=\"file\"; filename=\"{0}\"", fileName);
-            sb.AppendLine();
-            sb.AppendLine("Content-Type: " + contentType);
-            sb.AppendLine();
-
-            byte[] mimeBytesToWrite = Encoding.UTF8.GetBytes(sb.ToString());
-            return mimeBytesToWrite;
-        }
-
-        private static byte[] GetMimeTrailerBytesToWrite(string boundary)
-        {
-            byte[] mimeBytesToWrite = Encoding.UTF8.GetBytes(String.Concat("\r\n--", boundary, "--\r\n"));
-            return mimeBytesToWrite;
         }
 
         private class InternalDictionaryList
