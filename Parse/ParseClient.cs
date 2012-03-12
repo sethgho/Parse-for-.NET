@@ -306,6 +306,9 @@ namespace Parse
             string boundary = Guid.NewGuid().ToString();
             webRequest.ContentType = enableMime ? "multipart/form-data; boundary=" + boundary : contentType;
             webRequest.Timeout = ConnectionTimeout;
+            HttpWebRequest httpWebRequest = webRequest as HttpWebRequest;
+            httpWebRequest.ProtocolVersion = HttpVersion.Version11;
+            httpWebRequest.UserAgent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)";
 
             byte[] mimeHeaderBytesToWrite = null;
             byte[] mimeTrailerBytesToWrite = null;
@@ -346,7 +349,23 @@ namespace Parse
                 writeStream.Flush();
             }
 
-            HttpWebResponse responseObject = (HttpWebResponse)webRequest.GetResponse();
+            HttpWebResponse responseObject;
+            try
+            {
+                responseObject = (HttpWebResponse)webRequest.GetResponse();
+            }
+            catch (WebException ex)
+            {
+                try
+                {
+                    using (var reader = new StreamReader(ex.Response.GetResponseStream()))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Exception: " + reader.ReadToEnd());
+                    }
+                }
+                catch { }
+                throw;
+            }
             try
             {
                 if (responseObject.StatusCode == HttpStatusCode.Created || true)
@@ -364,7 +383,10 @@ namespace Parse
             }
             finally
             {
-                responseObject.Close();
+                if (responseObject != null)
+                {
+                    responseObject.Close();
+                }
             }
         }
 
