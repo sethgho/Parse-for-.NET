@@ -282,7 +282,7 @@ namespace Parse
             }
         }
 
-        private String PostFileToParse(string filePath, string contentType)
+        private String PostFileToParse(string filePath, string contentType, bool enableMime = false)
         {
             /*** This works, but content-type is incorrect. ***/
             //System.Net.ServicePointManager.Expect100Continue = false;
@@ -304,18 +304,28 @@ namespace Parse
             webRequest.Method = "POST";
             System.Net.ServicePointManager.Expect100Continue = false;
             string boundary = Guid.NewGuid().ToString();
-            webRequest.ContentType = "multipart/form-data; boundary=" + boundary;
+            webRequest.ContentType = enableMime ? "multipart/form-data; boundary=" + boundary : contentType;
             webRequest.Timeout = ConnectionTimeout;
 
-            byte[] mimeHeaderBytesToWrite = GetMimeHeaderBytesToWrite(contentType, fileName, boundary);
-            byte[] mimeTrailerBytesToWrite = GetMimeTrailerBytesToWrite(boundary);
+            byte[] mimeHeaderBytesToWrite = null;
+            byte[] mimeTrailerBytesToWrite = null;
 
             var fileInfo = new FileInfo(filePath);
-            webRequest.ContentLength = fileInfo.Length + mimeHeaderBytesToWrite.Length + mimeTrailerBytesToWrite.Length;
+            webRequest.ContentLength = fileInfo.Length;
+            if (enableMime)
+            {
+                mimeHeaderBytesToWrite = GetMimeHeaderBytesToWrite(contentType, fileName, boundary);
+                mimeTrailerBytesToWrite = GetMimeTrailerBytesToWrite(boundary);
+
+                webRequest.ContentLength += mimeHeaderBytesToWrite.Length + mimeTrailerBytesToWrite.Length;
+            }
 
             using (Stream writeStream = webRequest.GetRequestStream())
             {
-                writeStream.Write(mimeHeaderBytesToWrite, 0, mimeHeaderBytesToWrite.Length);
+                if (enableMime)
+                {
+                    writeStream.Write(mimeHeaderBytesToWrite, 0, mimeHeaderBytesToWrite.Length);
+                }
 
                 using (Stream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
@@ -329,7 +339,10 @@ namespace Parse
                     }
                 }
 
-                writeStream.Write(mimeTrailerBytesToWrite, 0, mimeTrailerBytesToWrite.Length);
+                if (enableMime)
+                {
+                    writeStream.Write(mimeTrailerBytesToWrite, 0, mimeTrailerBytesToWrite.Length);
+                }
                 writeStream.Flush();
             }
 
