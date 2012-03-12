@@ -254,7 +254,7 @@ namespace Parse
 
             String postString = JsonConvert.SerializeObject(PostObject);
 
-            PostObject["Class"] = ClassNameCopy;
+            //PostObject["Class"] = ClassNameCopy;
 
             byte[] postDataArray = Encoding.UTF8.GetBytes(postString);
 
@@ -284,14 +284,48 @@ namespace Parse
 
         private String PostFileToParse(string filePath, string contentType)
         {
-            System.Net.ServicePointManager.Expect100Continue = false;
+            /*** This works, but content-type is incorrect. ***/
+            //System.Net.ServicePointManager.Expect100Continue = false;
+            //WebClient webClient = new WebClient();
+            //webClient.Headers.Set("Content-Type", contentType);
+            //webClient.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
+            //byte[] response = webClient.UploadFile(fileEndpoint + "/" + Path.GetFileName(filePath), filePath);
+
+            //string result = System.Text.Encoding.UTF8.GetString(response);
+            //System.Diagnostics.Debug.WriteLine(result);
+
+
+            /* This generates a 502 Bad Gateway. WTF? */
             WebClient webClient = new WebClient();
-            webClient.Headers.Set("Content-Type", contentType);
-            webClient.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
-            byte[] response = webClient.UploadFile(fileEndpoint + "/" + Path.GetFileName(filePath), filePath);
+            WebRequest webRequest = WebRequest.Create(fileEndpoint + "/" + Path.GetFileName(filePath));
+            webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
+            webRequest.Method = "POST";
+            System.Net.ServicePointManager.Expect100Continue = false;
+            webRequest.ContentType = contentType;
+            webRequest.Timeout = ConnectionTimeout;
+            
 
-            return System.Text.Encoding.UTF8.GetString(response);  
+            byte[] data = File.ReadAllBytes(filePath);
+            webRequest.ContentLength = data.Length;
 
+            using (System.IO.Stream writeStream = webRequest.GetRequestStream())
+            {
+                writeStream.Write(data, 0, data.Length);
+            }
+            HttpWebResponse responseObject = (HttpWebResponse)webRequest.GetResponse();
+            if (responseObject.StatusCode == HttpStatusCode.Created || true)
+            {
+                System.IO.StreamReader responseReader = new System.IO.StreamReader(responseObject.GetResponseStream());
+                String responseString = responseReader.ReadToEnd();
+                responseObject.Close();
+
+                return responseString;
+            }
+            else
+            {
+                responseObject.Close();
+                throw new Exception("New object was not created. Server returned code " + responseObject.StatusCode);
+            }
         }
 
         private class InternalDictionaryList
