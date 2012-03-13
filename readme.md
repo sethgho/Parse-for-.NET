@@ -11,7 +11,7 @@ The code isn't particularly complex and, although sparsely commented, mildly doc
 	Parse.ParseObject myObject = myClient.CreateObject("MyClass", new { foo = "bar" });
 	Dictionary<String,String> allObjects = myClient.GetObjectsWithQuery("MyClass", new { foo = "bar" });
     
-#### Parse File Uploading
+#### Parse File Creation
 	ParseFile file = new ParseFile("c:\path\to\file.txt");
 	myClient.CreateFile(file);
 	Console.WriteLine(String.Format("File name: {0}", file.Name);
@@ -20,5 +20,8 @@ The code isn't particularly complex and, although sparsely commented, mildly doc
 	//Relational reference:
 	myObject["file"] = file;
 
+#### Parse File Delete
+	localClient.DeleteFile(file);
+	
 Known issues:
     *    When creating an object, the returned object contains only an object reference. This is due to a design choice with Parse
