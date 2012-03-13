@@ -312,9 +312,15 @@ namespace Parse
                 webRequest.Method = "PUT";
             }
 
+            object classValue = null;
+            if (PostObject.TryGetValue("Class", out classValue))
+            {
+                //Remove Class value to prevent from storing as an actual column in the table.
+                PostObject["Class"] = null;
+            }
+
             String postString = JsonConvert.SerializeObject(PostObject);
 
-            //PostObject["Class"] = ClassNameCopy;
 
             byte[] postDataArray = Encoding.UTF8.GetBytes(postString);
 
