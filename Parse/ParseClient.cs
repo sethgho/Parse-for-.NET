@@ -75,6 +75,11 @@ namespace Parse
             return PostObject;
         }
 
+        /// <summary>
+        /// Upload file to Parse
+        /// </summary>
+        /// <param name="parseFile">The file to upload. Its Name and Url properties will be updated upon success.</param>
+        /// <returns></returns>
         public ParseFile CreateFile(ParseFile parseFile)
         {
             Dictionary<String, String> returnObject = JsonConvert.DeserializeObject<Dictionary<String, String>>(PostFileToParse(parseFile.LocalPath, parseFile.ContentType));
@@ -83,6 +88,10 @@ namespace Parse
             return parseFile;
         }
 
+        /// <summary>
+        /// Delete an existing Parse File
+        /// </summary>
+        /// <param name="parseFile">The file to delete (by Name)</param>
         public void DeleteFile(ParseFile parseFile)
         {
             if (parseFile.Name != null)

@@ -13,15 +13,16 @@ The code isn't particularly complex and, although sparsely commented, mildly doc
     
 #### Parse File Creation
 	ParseFile file = new ParseFile("c:\path\to\file.txt");
+	
 	myClient.CreateFile(file);
 	Console.WriteLine(String.Format("File name: {0}", file.Name);
 	Console.WriteLine(String.Format("File url: {0}", file.Url);
 
-	//Relational reference:
-	myObject["file"] = file;
-
 #### Parse File Delete
 	localClient.DeleteFile(file);
 	
+#### File relational reference:
+	myObject["file"] = file;
+
 Known issues:
     *    When creating an object, the returned object contains only an object reference. This is due to a design choice with Parse
