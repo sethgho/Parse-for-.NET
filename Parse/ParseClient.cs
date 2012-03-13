@@ -229,6 +229,51 @@ namespace Parse
             return response;
         }
 
+        private string GetResponseString(WebRequest request)
+        {
+            HttpWebResponse responseObject;
+            string responseString;
+            try
+            {
+                responseObject = (HttpWebResponse)request.GetResponse();
+            }
+            catch (WebException ex)
+            {
+                try
+                {
+                    using (var reader = new StreamReader(ex.Response.GetResponseStream()))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Exception: " + reader.ReadToEnd());
+                    }
+                }
+                catch { }
+                throw;
+            }
+
+            try
+            {
+                if (responseObject.StatusCode == HttpStatusCode.Created || true)
+                {
+                    using (StreamReader responseReader = new StreamReader(responseObject.GetResponseStream()))
+                    {
+                        responseString = responseReader.ReadToEnd();                       
+                    }
+                }
+                else
+                {
+                    throw new Exception("New object was not created. Server returned code " + responseObject.StatusCode);
+                }
+            }
+            finally
+            {
+                if (responseObject != null)
+                {
+                    responseObject.Close();
+                }
+            }
+            return responseString;
+        }
+
         private String PostDataToParse(String ClassName, Dictionary<String, Object> PostObject, String ObjectId = null)
         {
             String ClassNameCopy = ClassName;
@@ -305,7 +350,7 @@ namespace Parse
                 using (Stream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     int readBytes;
-                    int bufferSize = 4096; // bytes
+                    int bufferSize = 4096; 
                     byte[] buffer = new byte[bufferSize];
 
                     while ((readBytes = fileStream.Read(buffer, 0, bufferSize)) > 0)
@@ -316,46 +361,7 @@ namespace Parse
 
                 writeStream.Flush();
             }
-
-            HttpWebResponse responseObject;
-            try
-            {
-                responseObject = (HttpWebResponse)webRequest.GetResponse();
-            }
-            catch (WebException ex)
-            {
-                try
-                {
-                    using (var reader = new StreamReader(ex.Response.GetResponseStream()))
-                    {
-                        System.Diagnostics.Debug.WriteLine("Exception: " + reader.ReadToEnd());
-                    }
-                }
-                catch { }
-                throw;
-            }
-            try
-            {
-                if (responseObject.StatusCode == HttpStatusCode.Created || true)
-                {
-                    using (StreamReader responseReader = new StreamReader(responseObject.GetResponseStream()))
-                    {
-                        string responseString = responseReader.ReadToEnd();
-                        return responseString;
-                    }
-                }
-                else
-                {
-                    throw new Exception("New object was not created. Server returned code " + responseObject.StatusCode);
-                }
-            }
-            finally
-            {
-                if (responseObject != null)
-                {
-                    responseObject.Close();
-                }
-            }
+            return GetResponseString(webRequest);           
         }
 
         private class InternalDictionaryList
