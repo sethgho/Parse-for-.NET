@@ -24,6 +24,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace ParseTests
 {
@@ -83,6 +84,14 @@ namespace ParseTests
         [TestMethod]
         public void TestMethod1()
         {
+            string fileContents = "This is a test file.";
+            File.WriteAllText("testFile.txt", fileContents);
+            Parse.ParseFile parseFile = new Parse.ParseFile("testFile.txt");
+            Parse.ParseFile testFile = localClient.CreateFile(parseFile);
+
+            //Test to make sure test file is returned after creation.
+            Assert.IsNotNull(testFile);
+
             Parse.ParseObject testObject = new Parse.ParseObject("ClassOne");
             testObject["foo"] = "bar";
             //Create a new object
@@ -107,11 +116,59 @@ namespace ParseTests
             Assert.AreEqual("notbar", searchObject["foo"]);
 
             //Test to make sure we can retrieve objects from Parse
-            Parse.ParseObject[]objList = localClient.GetObjectsWithQuery("ClassOne", new { foo = "notbar" });
+            Parse.ParseObject[] objList = localClient.GetObjectsWithQuery("ClassOne", new { foo = "notbar" });
             Assert.IsNotNull(objList);
 
             //Test to make sure the same object was returned
             Assert.AreEqual(objList.First()["objectId"], testObject.objectId);
+
+
+
+            //Cleanup
+            localClient.DeleteObject(testObject);
+        }
+
+        [TestMethod]
+        public void TestMP3()
+        {
+            Parse.ParseFile parseFile = new Parse.ParseFile(
+                Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "ParseTests", "sweep.mp3"));
+            Parse.ParseFile testFile = localClient.CreateFile(parseFile);
+
+            //Test to make sure test file is returned after creation.
+            Assert.IsNotNull(testFile);
+
+            Parse.ParseObject testObject = new Parse.ParseObject("ClassOne");
+            testObject["foo"] = "bar";
+            //Create a new object
+            testObject = localClient.CreateObject(testObject);
+
+            //Test to make sure we returned a ParseObject
+            Assert.IsNotNull(testObject);
+            //Test to make sure we were assigned an object id and the object was actually remotely created
+            Assert.IsNotNull(testObject.objectId);
+
+            //Search for the newly-created object on the server
+            Parse.ParseObject searchObject = localClient.GetObject("ClassOne", testObject.objectId);
+            //Test to make sure the same object was returned
+            Assert.AreEqual(testObject.objectId, searchObject.objectId);
+
+            testObject["foo"] = "notbar";
+            //Change a value on the server
+            localClient.UpdateObject(testObject);
+
+            searchObject = localClient.GetObject("ClassOne", testObject.objectId);
+            //Test to make sure the object was updated on the server
+            Assert.AreEqual("notbar", searchObject["foo"]);
+
+            //Test to make sure we can retrieve objects from Parse
+            Parse.ParseObject[] objList = localClient.GetObjectsWithQuery("ClassOne", new { foo = "notbar" });
+            Assert.IsNotNull(objList);
+
+            //Test to make sure the same object was returned
+            Assert.AreEqual(objList.First()["objectId"], testObject.objectId);
+
+
 
             //Cleanup
             localClient.DeleteObject(testObject);
