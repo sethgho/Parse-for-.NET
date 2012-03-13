@@ -77,9 +77,18 @@ namespace Parse
 
         public ParseFile CreateFile(ParseFile parseFile)
         {
-            Dictionary<String, String> returnObject = JsonConvert.DeserializeObject<Dictionary<String, String>>(PostFileToParse(parseFile.FilePath, parseFile.ContentType));
+            Dictionary<String, String> returnObject = JsonConvert.DeserializeObject<Dictionary<String, String>>(PostFileToParse(parseFile.LocalPath, parseFile.ContentType));
             parseFile.Url = returnObject["url"];
+            parseFile.Name = returnObject["name"];
             return parseFile;
+        }
+
+        public void DeleteFile(ParseFile parseFile)
+        {
+            if (parseFile.Name != null)
+            {
+                DeleteFileFromParse(parseFile.Name);
+            }
         }
 
         /// <summary>
@@ -182,6 +191,12 @@ namespace Parse
         }
 
         //Private Methods
+        private void SetBasicAuthHeader(WebRequest request)
+        {
+            byte[] authBytes = Encoding.UTF8.GetBytes(String.Format("{0}:{1}", ApplicationId, ApplicationKey).ToCharArray());
+            request.Headers["Authorization"] = "Basic " + Convert.ToBase64String(authBytes);
+        }
+
         private String GetFromParse(String endpointUrl, Object queryObject = null, String Order = null, Int32 Limit = 0, Int32 Skip = 0)
         {
             WebClient webClient = new WebClient();
@@ -332,8 +347,7 @@ namespace Parse
             string fileName = Path.GetFileName(filePath);
             WebRequest webRequest = WebRequest.Create(Path.Combine(fileEndpoint, fileName));
             // Authentication is broken. Doesn't return 401. Force authorization header on POST rather than Credentials property
-            byte[] authBytes = Encoding.UTF8.GetBytes(String.Format("{0}:{1}", ApplicationId, ApplicationKey).ToCharArray());
-            webRequest.Headers["Authorization"] = "Basic " + Convert.ToBase64String(authBytes);
+            SetBasicAuthHeader(webRequest);
             webRequest.Method = "POST";
             ServicePointManager.Expect100Continue = false;
             webRequest.ContentType = contentType;
@@ -362,6 +376,16 @@ namespace Parse
                 writeStream.Flush();
             }
             return GetResponseString(webRequest);           
+        }
+
+        private void DeleteFileFromParse(string fileName)
+        {
+            WebRequest webRequest = WebRequest.Create(Path.Combine(fileEndpoint, fileName));
+            byte[] authBytes = Encoding.UTF8.GetBytes(String.Format("{0}:{1}", ApplicationId, ApplicationKey).ToCharArray());
+            SetBasicAuthHeader(webRequest);
+            webRequest.Method = "DELETE";
+            webRequest.Timeout = ConnectionTimeout;            
+            GetResponseString(webRequest);
         }
 
         private class InternalDictionaryList
