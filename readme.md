@@ -5,11 +5,20 @@ I recently needed to access Parse data from .NET for an iOS app I'm writing and 
 
 The code isn't particularly complex and, although sparsely commented, mildly documented. If you have any questions, I'll be happy to answer them. There are also some unit tests that go over normal use cases.
 
-* * *
+#### Parse Object Creation
 
-    Parse.ParseClient myClient = new Parse.ParseClient("myappid", "mysecretkey");
-    Parse.ParseObject myObject = myClient.CreateObject("MyClass", new { foo = "bar" });
-    Dictionary<String,String> allObjects = myClient.GetObjectsWithQuery("MyClass", new { foo = "bar" });
+	Parse.ParseClient myClient = new Parse.ParseClient("myappid", "mysecretkey");
+	Parse.ParseObject myObject = myClient.CreateObject("MyClass", new { foo = "bar" });
+	Dictionary<String,String> allObjects = myClient.GetObjectsWithQuery("MyClass", new { foo = "bar" });
     
+#### Parse File Uploading
+	ParseFile file = new ParseFile("c:\path\to\file.txt");
+	myClient.CreateFile(file);
+	Console.WriteLine(String.Format("File name: {0}", file.Name);
+	Console.WriteLine(String.Format("File url: {0}", file.Url);
+
+	//Relational reference:
+	myObject["file"] = file;
+
 Known issues:
     *    When creating an object, the returned object contains only an object reference. This is due to a design choice with Parse
