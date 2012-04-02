@@ -114,6 +114,8 @@ namespace Parse
             PostObject.Remove("Class");
             PostObject.Remove("createdAt");
             PostDataToParse(postObjectClass, PostObject, PostObject.objectId);
+			// Restore the class
+			PostObject.Class = postObjectClass; 
         }
 
         /// <summary>
@@ -186,7 +188,6 @@ namespace Parse
                 throw new ArgumentNullException();
             }
 
-            WebClient webClient = new WebClient();
             WebRequest webRequest = WebRequest.Create(classEndpoint + "/" + DestinationObject.Class + "/" + DestinationObject.objectId);
             webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
             webRequest.Method = "DELETE";
@@ -208,8 +209,6 @@ namespace Parse
 
         private String GetFromParse(String endpointUrl, Object queryObject = null, String Order = null, Int32 Limit = 0, Int32 Skip = 0)
         {
-            WebClient webClient = new WebClient();
-
             String finalEndpointUrl = endpointUrl + "?";
 
             if (queryObject != null)
@@ -300,18 +299,16 @@ namespace Parse
 
         private String PostDataToParse(String ClassName, Dictionary<String, Object> PostObject, String ObjectId = null)
         {
-            String ClassNameCopy = ClassName;
             if (String.IsNullOrEmpty(ClassName) || PostObject == null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(string.Format("ClassName: {0} PostObject: {1}", ClassName, PostObject));
             }
 
             if (String.IsNullOrEmpty(ObjectId) == false)
             {
                 ClassName += "/" + ObjectId;
             }
-
-            WebClient webClient = new WebClient();
+			
             WebRequest webRequest = WebRequest.Create(classEndpoint + "/" + ClassName);
             webRequest.Credentials = new NetworkCredential(ApplicationId, ApplicationKey);
             webRequest.Method = "POST";
@@ -325,22 +322,21 @@ namespace Parse
             if (PostObject.TryGetValue("Class", out classValue))
             {
                 //Remove Class value to prevent from storing as an actual column in the table.
-                PostObject["Class"] = null;
+               	PostObject["Class"] = null;
             }
-
             String postString = JsonConvert.SerializeObject(PostObject);
-
-
+			PostObject["Class"] = classValue;
+			
             byte[] postDataArray = Encoding.UTF8.GetBytes(postString);
 
             webRequest.ContentLength = postDataArray.Length;
             webRequest.Timeout = ConnectionTimeout;
             webRequest.ContentType = "application/json";
 
-            Stream writeStream = webRequest.GetRequestStream();
+			Stream writeStream = webRequest.GetRequestStream();
             writeStream.Write(postDataArray, 0, postDataArray.Length);
             writeStream.Close();
-
+			
             HttpWebResponse responseObject = (HttpWebResponse)webRequest.GetResponse();
             if (responseObject.StatusCode == HttpStatusCode.Created || true)
             {
@@ -396,7 +392,7 @@ namespace Parse
         private void DeleteFileFromParse(string fileName)
         {
             WebRequest webRequest = WebRequest.Create(Path.Combine(fileEndpoint, fileName));
-            byte[] authBytes = Encoding.UTF8.GetBytes(String.Format("{0}:{1}", ApplicationId, ApplicationKey).ToCharArray());
+            Encoding.UTF8.GetBytes(String.Format("{0}:{1}", ApplicationId, ApplicationKey).ToCharArray());
             SetBasicAuthHeader(webRequest);
             webRequest.Method = "DELETE";
             webRequest.Timeout = ConnectionTimeout;            
