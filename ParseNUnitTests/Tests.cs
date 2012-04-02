@@ -29,17 +29,19 @@ using System.IO;
 namespace ParseTests
 {
     /// <summary>
-    /// Summary description for Tests
+    /// Conversion of the tests initially provided with Parse for .Net to work
+    /// with NUnit.
     /// </summary>
     [TestFixture]
     public class Tests
     {
-        public Parse.ParseClient localClient;
+        Parse.ParseClient localClient;
+		
         public Tests()
         {
             localClient = new Parse.ParseClient("CsQUidbvlr7hxU6KAScTXZfri7RCUxupK6kxmLvy", "h2W1KKwr3daS3oY8NFvP6KPrmMmPFoNnDILnWG9Y");
         }
-
+		
 
         [Test]
         public void TestMethod1()
